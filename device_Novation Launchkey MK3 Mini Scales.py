@@ -92,13 +92,18 @@ def get_octave(note_id):
 
 
 def OnMidiMsg(event):
-    event.handled = True
+    event.handled = False
+
     if event.midiId == midi.MIDI_NOTEON:
         if event.pmeFlags & midi.PME_System != 0:
             # print("\nBefore: " + id_to_name_dict[event.data1] + " on channel " + str(event.midiChan))
 
             current_key = "F"
-            if current_key != "C" and event.midiChan != 9:
+            if current_key != "C" and event.midiChan == 0:
+                # Ignore sharps/flats while mapping
+                if "#" in id_to_name_dict[event.data1] or "b" in id_to_name_dict[event.data1]:
+                    return
+
                 # Get position of original note in scale
                 c_index = get_c_index(event.data1)
 
@@ -124,13 +129,6 @@ def OnMidiMsg(event):
                 # Modify event note
                 event.data1 = translated_id
                 # print("After: " + id_to_name_dict[event.data1] + " on channel " + str(event.midiChan))
-
-            event.handled = False
-        else:
-            event.handled = False
-    else:
-        event.handled = False
-
 
 if __name__ == "__main__":
     read_scales_file()
