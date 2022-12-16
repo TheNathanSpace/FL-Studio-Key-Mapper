@@ -1,27 +1,27 @@
 # name=Novation Launckey MK3 Mini Scales
-# url=https://forum.image-line.com/viewtopic.php?p=1483607#p1483607
-
-# This import section is loading the back-end code required to execute the script. You may not need all modules that are available for all scripts.
-import json
-from pathlib import Path
-from typing import List
+# url=
 
 import midi
 
-# 48 = C4
-# 60 = C5
-# 72 = C6
-from fl_classes import FlMidiMsg
+scales_dict = {}
 
-flat = "♭"
-sharp = "♯"
+all_notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
-scales_dict = None
+sharps_flats_map = {
+    "F#": "Gb",
+    "C#": "Db",
+    "G#": "Ab",
+    "D#": "Eb",
+    "A#": "Bb",
+    "E#": "F",
+}
+flats_sharps_map = {v: k for k, v in sharps_flats_map.items()}
 
-c_scale = ["C", "D", "E", "F", "G", "A", "B"]
+id_to_name_dict = {}
+name_to_id_dict = {}
 
 
-def index_of(list_in: List, item):
+def index_of(list_in, item):
     counter = 0
     for i in list_in:
         if item == i:
@@ -31,31 +31,108 @@ def index_of(list_in: List, item):
 
 
 def read_scales_file():
-    scales_file = Path("scale_dict.json")
-    if not scales_file.exists():
-        raise FileNotFoundError("scale_dict.json file not found! Generate it using process_scales.py and keys.txt.")
+    input_file = \
+        """
+        C	D	E	F	G	A	B
+        G	A	B	C	D	E	F#
+        D	E	F#	G	A	B	C#
+        A	B	C#	D	E	F#	G#
+        E	F#	G#	A	B	C#	D#
+        B	C#	D#	E	F#	G#	A#
+        F#	G#	A#	B	C#	D#	E#
+        Db	Eb	F	Gb	Ab	Bb	C
+        Ab	Bb	C	Db	Eb	F	G
+        Eb	F	G	Ab	Bb	C	D
+        Bb	C	D	Eb	F	G	A
+        F	G	A	Bb	C	D	E
+        """
+    lines = input_file.split("\n")
+    for line in lines:
+        # Skip comments and blank lines
+        if "#" in line:
+            continue
+        if line == "\n":
+            continue
 
-    global scales_dict
-    scales_dict = json.loads(scales_file.read_text(encoding = "utf-8"))
+        line = line.replace(" ", "")
+        split_line = line.split("\t")
+        root_note = split_line[0]
+        scales_dict[root_note] = []
+        for note in split_line:
+            note = note.replace("\n", "")
+            scales_dict[root_note].append(note)
 
 
-class MidiHandler:
+def map_note_ids():
+    note_index = 0
+    octave = 0
+    for i in range(0, 128):
+        note_letter = all_notes[note_index]
+        id_to_name_dict[i] = note_letter + str(octave)
 
-    def OnMidiMsg(self, event: FlMidiMsg):
-        event.handled = True
-        if event.midiId == midi.MIDI_NOTEON:
-            if event.pmeFlags & midi.PME_System != 0:
+        note_index += 1
+        if note_index == 12:
+            note_index = 0
 
-                print(event.data1, event.data2)
+        if all_notes[note_index] == "C":
+            octave += 1
 
-            else:
-                event.handled = False
-        else:
-            event.handled = False
+    global name_to_id_dict
+    name_to_id_dict = {v: k for k, v in id_to_name_dict.items()}
 
 
-Simple = MidiHandler()
+def get_c_index(note_id):
+    no_octave = ''.join([i for i in id_to_name_dict[note_id] if not i.isdigit()])
+    return index_of(scales_dict["C"], no_octave)
+
+
+def get_octave(note_id):
+    just_octave = ''.join([i for i in id_to_name_dict[note_id] if i.isdigit()])
+    return just_octave
 
 
 def OnMidiMsg(event):
-    Simple.OnMidiMsg(event)
+    event.handled = True
+    if event.midiId == midi.MIDI_NOTEON:
+        if event.pmeFlags & midi.PME_System != 0:
+            # print("\nBefore: " + id_to_name_dict[event.data1] + " on channel " + str(event.midiChan))
+
+            current_key = "F"
+            if current_key != "C" and event.midiChan != 9:
+                # Get position of original note in scale
+                c_index = get_c_index(event.data1)
+
+                # Get translated note from new key
+                translated_key = scales_dict[current_key][c_index]
+                octave = get_octave(event.data1)
+
+                # Fix octave if note is late enough
+                for note in scales_dict[current_key][:c_index + 1]:
+                    if note == "C":
+                        octave = int(octave) + 1
+                        octave = str(octave)
+                        break
+
+                # Get note ID
+                translated_key_with_octave = translated_key + octave
+                try:
+                    translated_id = name_to_id_dict[translated_key_with_octave]
+                except:
+                    # Convert flat to sharp if necessary
+                    translated_id = name_to_id_dict[flats_sharps_map[translated_key] + octave]
+
+                # Modify event note
+                event.data1 = translated_id
+                # print("After: " + id_to_name_dict[event.data1] + " on channel " + str(event.midiChan))
+
+            event.handled = False
+        else:
+            event.handled = False
+    else:
+        event.handled = False
+
+
+if __name__ == "__main__":
+    read_scales_file()
+    map_note_ids()
+    print("Generated scale/note dicts")
