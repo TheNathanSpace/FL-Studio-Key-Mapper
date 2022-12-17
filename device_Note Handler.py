@@ -1,7 +1,9 @@
-# name=Novation Launckey MK3 Mini Scales
-# url=
+# name=Note Handler
+# receiveFrom=Shift Handler
+# url=https://github.com/TheNathanSpace/FL-Studio-Key-Mapper
 
 import midi
+import ui
 
 scales_dict = {}
 
@@ -19,6 +21,10 @@ flats_sharps_map = {v: k for k, v in sharps_flats_map.items()}
 
 id_to_name_dict = {}
 name_to_id_dict = {}
+
+shift_is_on = False
+
+current_key = "Eb"
 
 
 def index_of(list_in, item):
@@ -81,9 +87,13 @@ def map_note_ids():
     name_to_id_dict = {v: k for k, v in id_to_name_dict.items()}
 
 
-def get_c_index(note_id):
+def get_no_octave(note_id):
     no_octave = ''.join([i for i in id_to_name_dict[note_id] if not i.isdigit()])
-    return index_of(scales_dict["C"], no_octave)
+    return no_octave
+
+
+def get_c_index(note_id):
+    return index_of(scales_dict["C"], get_no_octave(note_id))
 
 
 def get_octave(note_id):
@@ -94,14 +104,39 @@ def get_octave(note_id):
 def OnMidiMsg(event):
     event.handled = False
 
+    # print("MIDI STATUS", event.midiId, "|", "MIDI DATA1", event.data1, "|",
+    #       "MIDI DATA2", event.data2, "|", "MIDI status", event.status, "|",
+    #       "Channel", (event.midiChan + 1), event.sysex)  # Prints MIDI data from pads, knobs and other buttons. Useful for debugging.
+
     if event.midiId == midi.MIDI_NOTEON:
         if event.pmeFlags & midi.PME_System != 0:
             # print("\nBefore: " + id_to_name_dict[event.data1] + " on channel " + str(event.midiChan))
+            global current_key
+            # Only perform this on key down, not up
+            if shift_is_on and event.data2 != 0:
+                change_to = get_no_octave(event.data1)
 
-            current_key = "F"
+                if change_to not in scales_dict:
+                    # Convert sharp to flat
+                    change_to = sharps_flats_map[change_to]
+
+                    if change_to not in scales_dict:
+                        message = "Couldn't change key signature to " + change_to
+                        ui.setHintMsg(message)
+                        print(message)
+                        return
+
+                current_key = change_to
+                message = "Changed mapped key signature to: " + current_key
+                ui.setHintMsg(message)
+                print(message)
+                event.handled = True
+                return
+
             if current_key != "C" and event.midiChan == 0:
                 # Ignore sharps/flats while mapping
                 if "#" in id_to_name_dict[event.data1] or "b" in id_to_name_dict[event.data1]:
+                    event.handled = True
                     return
 
                 # Get position of original note in scale
@@ -120,9 +155,9 @@ def OnMidiMsg(event):
 
                 # Get note ID
                 translated_key_with_octave = translated_key + octave
-                try:
+                if translated_key_with_octave in name_to_id_dict:
                     translated_id = name_to_id_dict[translated_key_with_octave]
-                except:
+                else:
                     # Convert flat to sharp if necessary
                     translated_id = name_to_id_dict[flats_sharps_map[translated_key] + octave]
 
@@ -130,7 +165,18 @@ def OnMidiMsg(event):
                 event.data1 = translated_id
                 # print("After: " + id_to_name_dict[event.data1] + " on channel " + str(event.midiChan))
 
+
+def OnSysEx(event):
+    received_message = int.from_bytes(bytes = event.sysex, byteorder = 'big')
+
+    global shift_is_on
+    if received_message == 18:
+        shift_is_on = True
+    elif received_message == 17:
+        shift_is_on = False
+
+
 if __name__ == "__main__":
     read_scales_file()
     map_note_ids()
-    print("Generated scale/note dicts")
+    print("Initialized note handler\n")
