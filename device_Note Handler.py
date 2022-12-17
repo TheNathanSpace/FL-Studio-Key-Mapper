@@ -24,7 +24,7 @@ name_to_id_dict = {}
 
 shift_is_on = False
 
-current_key = "Eb"
+current_key = "C"
 
 
 def index_of(list_in, item):
