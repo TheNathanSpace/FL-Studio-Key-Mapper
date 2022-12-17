@@ -16,6 +16,7 @@ This script is built for the Novation Launchkey Mini MK3.
 - `Shift+[note]` changes the scale to the key with that note as the root note (octave doesn't matter)
 - Only modifies MIDI note events on MIDI channel `0` (so you can still use drum pads if set up in Novation Components)
 - While mapped to another scale, sharps/flats are ignored (so only the white keys make a sound)
+- This only contains the major scales
 
 ## Installation
 
