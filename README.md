@@ -2,7 +2,7 @@
 
 ### (for the Novation Launchkey Mini MK3 in FL Studio)
 
-These scripts for FL Studio basically implement some of the Scale Mode functionality from the full-sized Launchkey controllers. 
+These scripts for FL Studio basically implement lots of the Scale Mode functionality from the full-sized Launchkey controllers. 
 
 Problem: I don't know piano. But, I don't want to write all of my songs in the key of C.
 
