@@ -1,7 +1,7 @@
 # name=Note Handler
 # receiveFrom=Shift Handler
 # url=https://github.com/TheNathanSpace/Launchkey-Mini-FL-Studio-Scale-Mode/
-
+import device
 import midi
 import ui
 
@@ -128,9 +128,9 @@ def OnMidiMsg(event):
     """
     event.handled = False
 
-    # print("MIDI STATUS", event.midiId, "|", "MIDI DATA1", event.data1, "|",
-    #       "MIDI DATA2", event.data2, "|", "MIDI status", event.status, "|",
-    #       "Channel", (event.midiChan + 1), event.sysex, "|", "Handled", event.handled)  # Prints MIDI data from pads, knobs and other buttons. Useful for debugging.
+    print("MIDI STATUS", event.midiId, "|", "MIDI DATA1", event.data1, "|",
+          "MIDI DATA2", event.data2, "|", "MIDI status", event.status, "|",
+          "Channel", (event.midiChan + 1), "| Sysex", event.sysex, "|", "Handled", event.handled)  # Prints MIDI data from pads, knobs and other buttons. Useful for debugging.
 
     if event.midiId == midi.MIDI_NOTEON:
         if event.pmeFlags & midi.PME_System != 0:
@@ -206,7 +206,7 @@ def OnSysEx(event):
         shift_is_on = False
 
 
-if __name__ == "__main__":
+def OnInit():
     # Create scale dicts
     major_scales_dict = read_scales_file(constants.major_scales)
     minor_scales_dict = read_scales_file(constants.minor_scales)
