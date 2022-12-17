@@ -1,23 +1,14 @@
 # name=Note Handler
 # receiveFrom=Shift Handler
-# url=https://github.com/TheNathanSpace/FL-Studio-Key-Mapper
+# url=https://github.com/TheNathanSpace/Launchkey-Mini-FL-Studio-Scale-Mode/
 
 import midi
 import ui
 
-scales_dict = {}
+import constants
 
-all_notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-
-sharps_flats_map = {
-    "F#": "Gb",
-    "C#": "Db",
-    "G#": "Ab",
-    "D#": "Eb",
-    "A#": "Bb",
-    "E#": "F",
-}
-flats_sharps_map = {v: k for k, v in sharps_flats_map.items()}
+major_scales_dict = {}
+minor_scales_dict = {}
 
 id_to_name_dict = {}
 name_to_id_dict = {}
@@ -28,6 +19,13 @@ current_key = "C"
 
 
 def index_of(list_in, item):
+    """
+    Returns the index of an item in a list.
+
+    :param list_in: The list to traverse.
+    :param item: The item to find in the list.
+    :return: The index of the first occurrence of the item, or -1 if not found.
+    """
     counter = 0
     for i in list_in:
         if item == i:
@@ -36,45 +34,46 @@ def index_of(list_in, item):
     return -1
 
 
-def read_scales_file():
-    input_file = \
-        """
-        C	D	E	F	G	A	B
-        G	A	B	C	D	E	F#
-        D	E	F#	G	A	B	C#
-        A	B	C#	D	E	F#	G#
-        E	F#	G#	A	B	C#	D#
-        B	C#	D#	E	F#	G#	A#
-        F#	G#	A#	B	C#	D#	E#
-        Db	Eb	F	Gb	Ab	Bb	C
-        Ab	Bb	C	Db	Eb	F	G
-        Eb	F	G	Ab	Bb	C	D
-        Bb	C	D	Eb	F	G	A
-        F	G	A	Bb	C	D	E
-        """
-    lines = input_file.split("\n")
+def read_scales_file(scale_string):
+    """
+    Parses a string of scales into a dictionary.
+
+    :param scale_string: A string of scales. Each line contains a scale, starting at the root note and
+                        ending before the next root note (so there are 7 notes). Spaces and blank
+                        newlines are ignored.
+    :return: A dictionary mapping the root note to a list of notes for each scale.
+    """
+    loc_scales_dict = {}
+    lines = scale_string.split("\n")
     for line in lines:
         # Skip comments and blank lines
-        if "#" in line:
-            continue
         if line == "\n":
             continue
 
         line = line.replace(" ", "")
         split_line = line.split("\t")
         root_note = split_line[0]
-        scales_dict[root_note] = []
+        loc_scales_dict[root_note] = []
         for note in split_line:
             note = note.replace("\n", "")
-            scales_dict[root_note].append(note)
+            loc_scales_dict[root_note].append(note)
+
+    return loc_scales_dict
 
 
-def map_note_ids():
+def map_note_ids(all_notes):
+    """
+    Creates a dictionary mapping note IDs from 0-127 to note names from C0 to C10
+
+    :param all_notes: A list of all possible note names, from C to B
+    :return: A dictionary mapping note IDs (int) --> note names including octave (str)
+    """
+    loc_id_to_name_dict = {}
     note_index = 0
     octave = 0
     for i in range(0, 128):
         note_letter = all_notes[note_index]
-        id_to_name_dict[i] = note_letter + str(octave)
+        loc_id_to_name_dict[i] = note_letter + str(octave)
 
         note_index += 1
         if note_index == 12:
@@ -83,25 +82,50 @@ def map_note_ids():
         if all_notes[note_index] == "C":
             octave += 1
 
-    global name_to_id_dict
-    name_to_id_dict = {v: k for k, v in id_to_name_dict.items()}
+    return loc_id_to_name_dict
 
 
 def get_no_octave(note_id):
+    """
+    Returns the name of a note without the octave.
+
+    :param note_id: The ID of the note, as an int from 0-127
+    :return: The name of the note, from A-G, including # or b as relevant
+    """
+
     no_octave = ''.join([i for i in id_to_name_dict[note_id] if not i.isdigit()])
     return no_octave
 
 
 def get_c_index(note_id):
-    return index_of(scales_dict["C"], get_no_octave(note_id))
+    """
+    Returns the index of a note in the key of C.
+
+    :param note_id: The ID of the note, as an int from 0-127
+    :return: The index of the note, as an int from 0-6
+    """
+
+    return index_of(major_scales_dict["C"], get_no_octave(note_id))
 
 
 def get_octave(note_id):
+    """
+    Returns the octave of a note, from 0-10.
+
+    :param note_id: The ID of the note, as an int from 0-127
+    :return: The octave of the note, as an int from 0-10
+    """
+
     just_octave = ''.join([i for i in id_to_name_dict[note_id] if i.isdigit()])
     return just_octave
 
 
 def OnMidiMsg(event):
+    """
+    Handles MIDI note events.
+
+    :param event: The FlMidiMsg
+    """
     event.handled = False
 
     # print("MIDI STATUS", event.midiId, "|", "MIDI DATA1", event.data1, "|",
@@ -116,11 +140,11 @@ def OnMidiMsg(event):
             if shift_is_on and event.data2 != 0:
                 change_to = get_no_octave(event.data1)
 
-                if change_to not in scales_dict:
+                if change_to not in major_scales_dict:
                     # Convert sharp to flat
-                    change_to = sharps_flats_map[change_to]
+                    change_to = constants.sharps_flats_map[change_to]
 
-                    if change_to not in scales_dict:
+                    if change_to not in major_scales_dict:
                         message = "Couldn't change key signature to " + change_to
                         ui.setHintMsg(message)
                         print(message)
@@ -143,11 +167,11 @@ def OnMidiMsg(event):
                 c_index = get_c_index(event.data1)
 
                 # Get translated note from new key
-                translated_key = scales_dict[current_key][c_index]
+                translated_key = major_scales_dict[current_key][c_index]
                 octave = get_octave(event.data1)
 
                 # Fix octave if note is late enough
-                for note in scales_dict[current_key][:c_index + 1]:
+                for note in major_scales_dict[current_key][:c_index + 1]:
                     if note == "C":
                         octave = int(octave) + 1
                         octave = str(octave)
@@ -159,7 +183,7 @@ def OnMidiMsg(event):
                     translated_id = name_to_id_dict[translated_key_with_octave]
                 else:
                     # Convert flat to sharp if necessary
-                    translated_id = name_to_id_dict[flats_sharps_map[translated_key] + octave]
+                    translated_id = name_to_id_dict[constants.flats_sharps_map[translated_key] + octave]
 
                 # Modify event note
                 event.data1 = translated_id
@@ -167,6 +191,12 @@ def OnMidiMsg(event):
 
 
 def OnSysEx(event):
+    """
+    Handles SysEx events. The only expected events are shift on and
+    shift off, sent by the Shift handler.
+
+    :param event: The SysexMidiMsg
+    """
     received_message = int.from_bytes(bytes = event.sysex, byteorder = 'big')
 
     global shift_is_on
@@ -177,6 +207,12 @@ def OnSysEx(event):
 
 
 if __name__ == "__main__":
-    read_scales_file()
-    map_note_ids()
+    # Create scale dicts
+    major_scales_dict = read_scales_file(constants.major_scales)
+    minor_scales_dict = read_scales_file(constants.minor_scales)
+
+    # Create id/name maps (both directions)
+    id_to_name_dict = map_note_ids(constants.all_notes)
+    name_to_id_dict = {v: k for k, v in id_to_name_dict.items()}
+
     print("Initialized note handler\n")
