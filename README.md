@@ -1,19 +1,21 @@
-# Key Signature Helper
+# Scale Mode
 
-### (for the Novation Launchkey Mini in FL Studio)
+### (for the Novation Launchkey Mini MK3 in FL Studio)
+
+These scripts for FL Studio basically implement some of the Scale Mode functionality from the full-sized Launchkey controllers. 
 
 Problem: I don't know piano. But, I don't want to write all of my songs in the key of C.
 
 Solution: Use my _sick Python skills_ to write a script mapping notes in the key of C (the nice easy white notes) to
-other key signatures.
+other scales/keys.
 
 This script is built for the Novation Launchkey Mini MK3.
 
 ## Features
 
-- `Shift+[note]` changes the key signature to that key (octave doesn't matter)
+- `Shift+[note]` changes the scale to the key with that note as the root note (octave doesn't matter)
 - Only modifies MIDI note events on MIDI channel `0` (so you can still use drum pads if set up in Novation Components)
-- While mapped to another key signature, sharps/flats are ignored (so only the white keys make a sound)
+- While mapped to another scale, sharps/flats are ignored (so only the white keys make a sound)
 
 ## Installation
 
