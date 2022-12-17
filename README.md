@@ -1,4 +1,6 @@
-# FL Studio Key Mapper
+# Key Signature Helper
+
+### (for the Novation Launchkey Mini in FL Studio)
 
 Problem: I don't know piano. But, I don't want to write all of my songs in the key of C.
 
