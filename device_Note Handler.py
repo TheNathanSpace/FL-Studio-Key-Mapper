@@ -106,7 +106,7 @@ def OnMidiMsg(event):
 
     # print("MIDI STATUS", event.midiId, "|", "MIDI DATA1", event.data1, "|",
     #       "MIDI DATA2", event.data2, "|", "MIDI status", event.status, "|",
-    #       "Channel", (event.midiChan + 1), event.sysex)  # Prints MIDI data from pads, knobs and other buttons. Useful for debugging.
+    #       "Channel", (event.midiChan + 1), event.sysex, "|", "Handled", event.handled)  # Prints MIDI data from pads, knobs and other buttons. Useful for debugging.
 
     if event.midiId == midi.MIDI_NOTEON:
         if event.pmeFlags & midi.PME_System != 0:
