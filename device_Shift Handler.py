@@ -10,6 +10,7 @@ import transport
 shift_DATA1 = 108
 record_DATA1 = 117
 play_DATA1 = 115
+arrow_DATA1 = 104
 
 
 def OnMidiMsg(event):
@@ -40,6 +41,11 @@ def OnMidiMsg(event):
                     transport.stop()
                 else:
                     transport.start()
+        elif event.data1 == arrow_DATA1:
+            if event.data2:
+                device.dispatch(0, 0xF0, bytes([20]))
+            else:
+                device.dispatch(0, 0xF0, bytes([19]))
 
 
 def OnInit():

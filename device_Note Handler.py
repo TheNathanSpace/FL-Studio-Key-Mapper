@@ -14,6 +14,8 @@ id_to_name_dict = {}
 name_to_id_dict = {}
 
 shift_is_on = False
+arrow_is_on = False
+is_minor = False
 
 current_key = "C"
 
@@ -136,29 +138,42 @@ def OnMidiMsg(event):
         if event.pmeFlags & midi.PME_System != 0:
             # print("\nBefore: " + id_to_name_dict[event.data1] + " on channel " + str(event.midiChan))
             global current_key
+            global is_minor
+
             # Only perform this on key down, not up
             if shift_is_on and event.data2 != 0:
                 change_to = get_no_octave(event.data1)
 
-                if change_to not in major_scales_dict:
+                # Decide if major or minor key
+                if arrow_is_on:
+                    major_minor = " minor"
+                    scales_dict = minor_scales_dict
+                    is_minor = True
+                else:
+                    major_minor = " major"
+                    scales_dict = major_scales_dict
+                    is_minor = False
+
+                # Parse key to change to
+                if change_to not in scales_dict:
                     # Convert sharp to flat
                     change_to = constants.sharps_flats_map[change_to]
 
-                    if change_to not in major_scales_dict:
-                        message = "Couldn't change key signature to " + change_to
+                    if change_to not in scales_dict:
+                        message = "Couldn't change key signature to " + change_to + major_minor
                         ui.setHintMsg(message)
                         print(message)
                         return
 
                 current_key = change_to
-                message = "Changed mapped key signature to: " + current_key
+                message = "Changed mapped key signature to: " + current_key + major_minor
                 ui.setHintMsg(message)
                 print(message)
                 event.handled = True
                 return
 
             if current_key != "C" and event.midiChan == 0:
-                # Ignore sharps/flats while mapping
+                # Ignore sharps/flats while key is mapped
                 if "#" in id_to_name_dict[event.data1] or "b" in id_to_name_dict[event.data1]:
                     event.handled = True
                     return
@@ -166,13 +181,19 @@ def OnMidiMsg(event):
                 # Get position of original note in scale
                 c_index = get_c_index(event.data1)
 
+                # Choose if major/minor
+                if is_minor:
+                    scales_dict = minor_scales_dict
+                else:
+                    scales_dict = major_scales_dict
+
                 # Get translated note from new key
-                translated_key = major_scales_dict[current_key][c_index]
+                translated_key = scales_dict[current_key][c_index]
                 octave = get_octave(event.data1)
 
                 # Fix octave if note is late enough
-                for note in major_scales_dict[current_key][:c_index + 1]:
-                    if note == "C":
+                for note in scales_dict[current_key][:c_index + 1]:
+                    if "C" in note:
                         octave = int(octave) + 1
                         octave = str(octave)
                         break
@@ -192,26 +213,35 @@ def OnMidiMsg(event):
 
 def OnSysEx(event):
     """
-    Handles SysEx events. The only expected events are shift on and
-    shift off, sent by the Shift handler.
+    Handles SysEx events. The only expected events are shift on/off
+    and arrow on/off, sent by the Shift handler.
 
     :param event: The SysexMidiMsg
     """
     received_message = int.from_bytes(bytes = event.sysex, byteorder = 'big')
 
     global shift_is_on
+    global arrow_is_on
     if received_message == 18:
         shift_is_on = True
     elif received_message == 17:
         shift_is_on = False
+    elif received_message == 20:
+        arrow_is_on = True
+    elif received_message == 19:
+        arrow_is_on = False
 
 
 def OnInit():
     # Create scale dicts
+    global major_scales_dict
+    global minor_scales_dict
     major_scales_dict = read_scales_file(constants.major_scales)
     minor_scales_dict = read_scales_file(constants.minor_scales)
 
     # Create id/name maps (both directions)
+    global id_to_name_dict
+    global name_to_id_dict
     id_to_name_dict = map_note_ids(constants.all_notes)
     name_to_id_dict = {v: k for k, v in id_to_name_dict.items()}
 
