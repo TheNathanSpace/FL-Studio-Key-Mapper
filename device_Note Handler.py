@@ -130,9 +130,9 @@ def OnMidiMsg(event):
     """
     event.handled = False
 
-    print("MIDI STATUS", event.midiId, "|", "MIDI DATA1", event.data1, "|",
-          "MIDI DATA2", event.data2, "|", "MIDI status", event.status, "|",
-          "Channel", (event.midiChan + 1), "| Sysex", event.sysex, "|", "Handled", event.handled)  # Prints MIDI data from pads, knobs and other buttons. Useful for debugging.
+    # print("MIDI STATUS", event.midiId, "|", "MIDI DATA1", event.data1, "|",
+    #       "MIDI DATA2", event.data2, "|", "MIDI status", event.status, "|",
+    #       "Channel", (event.midiChan + 1), "| Sysex", event.sysex, "|", "Handled", event.handled)  # Prints MIDI data from pads, knobs and other buttons. Useful for debugging.
 
     if event.midiId == midi.MIDI_NOTEON:
         if event.pmeFlags & midi.PME_System != 0:
@@ -160,13 +160,13 @@ def OnMidiMsg(event):
                     change_to = constants.sharps_flats_map[change_to]
 
                     if change_to not in scales_dict:
-                        message = "Couldn't change key signature to " + change_to + major_minor
+                        message = "Couldn't change key to " + change_to + major_minor
                         ui.setHintMsg(message)
                         print(message)
                         return
 
                 current_key = change_to
-                message = "Changed mapped key signature to: " + current_key + major_minor
+                message = "Changed mapped key to: " + current_key + major_minor
                 ui.setHintMsg(message)
                 print(message)
                 event.handled = True

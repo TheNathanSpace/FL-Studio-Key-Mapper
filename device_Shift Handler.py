@@ -21,9 +21,9 @@ def OnMidiMsg(event):
     """
     event.handled = False
 
-    print("MIDI STATUS", event.midiId, "|", "MIDI DATA1", event.data1, "|",
-          "MIDI DATA2", event.data2, "|", "MIDI status", event.status, "|",
-          "Channel", (event.midiChan + 1), "| Sysex", event.sysex, "|", "Handled", event.handled)  # Prints MIDI data from pads, knobs and other buttons. Useful for debugging.
+    # print("MIDI STATUS", event.midiId, "|", "MIDI DATA1", event.data1, "|",
+    #       "MIDI DATA2", event.data2, "|", "MIDI status", event.status, "|",
+    #       "Channel", (event.midiChan + 1), "| Sysex", event.sysex, "|", "Handled", event.handled)  # Prints MIDI data from pads, knobs and other buttons. Useful for debugging.
 
     if event.midiId == midi.MIDI_CONTROLCHANGE:
         if event.data1 == shift_DATA1:
