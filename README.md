@@ -34,3 +34,5 @@ Here's how mine worked out:
 ![img.png](img.png)
 
 Note that the `Shift Handler` script is selected for the `MIDIIN2` device.
+
+The Note Handler should have port `170`, and the Shift Handler should have port `171`, both in Output _and_ Input.
